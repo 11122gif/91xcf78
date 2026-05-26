@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 游戏大厅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
+            to { text-shadow: 0 0 30px rgba(78, 205, 196, 0.8); }
+        }
+        
+        .game-menu {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+        }
+        
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 250px;
+            border: 2px solid transparent;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-10px);
+            border-color: #4ecdc4;
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+        }
+        
+        .game-card .icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+        
+        .game-card h2 {
+            margin-bottom: 10px;
+            color: #4ecdc4;
+        }
+        
+        .game-card p {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        
+        .game-container {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .score-display {
+            font-size: 1.5em;
+            color: #ff6b6b;
+        }
+        
+        .back-btn {
+            background: #ff6b6b;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+        
+        #gameCanvas {
+            background: #0d0d1a;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.3);
+        }
+        
+        /* 贪吃蛇样式 */
+        #snakeCanvas {
+            border: 3px solid #4ecdc4;
+        }
+        
+        /* 俄罗斯方块样式 */
+        #tetrisCanvas {
+            border: 3px solid #ff6b6b;
+        }
+        
+        /* 打地鼠样式 */
+        #whackCanvas {
+            border: 3px solid #ffe66d;
+        }
+        
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #ff6b6b;
+        }
+        
+        .game-over h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+        }
+        
+        .game-over p {
+            font-size: 1.5em;
+            margin-bottom: 25px;
+            color: #4ecdc4;
+        }
+        
+        .restart-btn {
+            background: #4ecdc4;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            color: #1a1a2e;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .restart-btn:hover {
+            background: #26a69a;
+            transform: scale(1.1);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            text-align: center;
+            color: #888;
+        }
+        
+        .instructions span {
+            margin: 0 15px;
+            display: inline-block;
+        }
+        
+        .key {
+            background: #333;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-family: monospace;
+            color: #4ecdc4;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主菜单 -->
+    <div id="mainMenu">
+        <h1>🎮 游戏大厅</h1>
+        <div class="game-menu">
+            <div class="game-card" onclick="startGame('snake')">
+                <div class="icon">🐍</div>
+                <h2>贪吃蛇</h2>
+                <p>经典怀旧游戏，控制蛇吃食物越长越大</p>
+            </div>
+            <div class="game-card" onclick="startGame('tetris')">
+                <div class="icon">🧱</div>
+                <h2>俄罗斯方块</h2>
+                <p>消除方块，挑战高分，看你能走多远</p>
+            </div>
+            <div class="game-card" onclick="startGame('whackamole')">
+                <div class="icon">🔨</div>
+                <h2>打地鼠</h2>
+                <p>快速反应，在地鼠躲藏前击中它们</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 贪吃蛇游戏 -->
+    <div id="snakeGame" class="game-container">
+        <div class="game-header">
+            <div class="score-display">🏆 得分: <span id="snakeScore">0</span></div>
+            <button class="back-btn" onclick="goBack()">返回菜单</button>
+        </div>
+        <canvas id="snakeCanvas" width="400" height="400"></canvas>
+        <div class="instructions">
+            <span><span class="key">↑</span><span class="key">↓</span><span class="key">←</span><span class="key">→</span> 方向键控制</span>
+            <span>|</span>
+            <span><span class="key">空格</span> 暂停</span>
+        </div>
+        <div id="snakeGameOver" class="game-over">
+            <h2>💀 游戏结束</h2>
+            <p>你的得分: <span id="snakeFinalScore">0</span></p>
+            <button class="restart-btn" onclick="restartSnake()">再来一局</button>
+        </div>
+    </div>
+    
+    <!-- 俄罗斯方块游戏 -->
+    <div id="tetrisGame" class="game-container">
+        <div class="game-header">
+            <div class="score-display">🏆 得分: <span id="tetrisScore">0</span></div>
+            <div style="color: #4ecdc4;">等级: <span id="tetrisLevel">1</span></div>
+            <button class="back-btn" onclick="goBack()">返回菜单</button>
+        </div>
+        <canvas id="tetrisCanvas" width="300" height="500"></canvas>
+        <div class="instructions">
+            <span><span class="key">←</span><span class="key">→</span> 移动</span>
+            <span><span class="key">↑</span> 旋转</span>
+            <span><span class="key">↓</span> 加速下落</span>
+            <span><span class="key">空格</span> 直接落底</span>
+        </div>
+        <div id="tetrisGameOver" class="game-over">
+            <h2>💀 游戏结束</h2>
+            <p>你的得分: <span id="tetrisFinalScore">0</span></p>
+            <button class="restart-btn" onclick="restartTetris()">再来一局</button>
+        </div>
+    </div>
+    
+    <!-- 打地鼠游戏 -->
+    <div id="whackGame" class="game-container">
+        <div class="game-header">
+            <div class="score-display">🏆 得分: <span id="whackScore">0</span></div>
+            <div style="color: #ffe66d;">时间: <span id="whackTime">30</span>s</div>
+            <button class="back-btn" onclick="goBack()">返回菜单</button>
+        </div>
+        <canvas id="whackCanvas" width="500" height="400"></canvas>
+        <div class="instructions">
+            <span>🎯 用鼠标点击地鼠获得分数</span>
+        </div>
+        <div id="whackGameOver" class="game-over">
+            <h2>🎉 时间到!</h2>
+            <p>你的得分: <span id="whackFinalScore">0</span></p>
+            <button class="restart-btn" onclick="restartWhack()">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentGame = null;
+        
+        // 切换游戏显示
+        function startGame(game) {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.querySelectorAll('.game-container').forEach(el => el.style.display = 'none');
+            
+            if (game === 'snake') {
+                document.getElementById('snakeGame').style.display = 'block';
+                initSnake();
+            } else if (game === 'tetris') {
+                document.getElementById('tetrisGame').style.display = 'block';
+                initTetris();
+            } else if (game === 'whackamole') {
+                document.getElementById('whackGame').style.display = 'block';
+                initWhack();
+            }
+        }
+        
+        function goBack() {
+            document.getElementById('mainMenu').style.display = 'block';
+            document.querySelectorAll('.game-container').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.game-over').forEach(el => el.style.display = 'none');
+            
+            // 停止所有游戏循环
+            if (window.snakeInterval) clearInterval(window.snakeInterval);
+            if (window.tetrisInterval) clearInterval(window.tetrisInterval);
+            if (window.whackInterval) clearInterval(window.whackInterval);
+        }
+        
+        // ============== 贪吃蛇游戏 ==============
+        let snakeCtx, snakeCanvas;
+        let snake, food, direction, score, snakeInterval;
+        let snakeGameRunning = false;
+        let snakePaused = false;
+        const gridSize = 20;
+        
+        function initSnake() {
+            snakeCanvas = document.getElementById('snakeCanvas');
+            snakeCtx = snakeCanvas.getContext('2d');
+            
+            snake = [{x: 10, y: 10}];
+            direction = 'right';
+            score = 0;
+            snakePaused = false;
+            snakeGameRunning = true;
+            
+            document.getElementById('snakeScore').textContent = '0';
+            document.getElementById('snakeGameOver').style.display = 'none';
+            
+            spawnFood();
+            
+            if (snakeInterval) clearInterval(snakeInterval);
+            snakeInterval = setInterval(updateSnake, 100);
+            
+            document.onkeydown = snakeKeyHandler;
+        }
+        
+        function snakeKeyHandler(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                snakePaused = !snakePaused;
+                return;
+            }
+            
+            if (snakePaused) return;
+            
+            switch(e.key) {
+                case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
+                case 'ArrowDown': if (direction !== 'up') direction = 'down'; break;
+                case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
+                case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
+            }
+        }
+        
+        function spawnFood() {
+            food = {
+                x: Math.floor(Math.random() * (snakeCanvas.width / gridSize)),
+                y: Math.floor(Math.random() * (snakeCanvas.height / gridSize))
+            };
+        }
+        
+        function updateSnake() {
+            if (snakePaused || !snakeGameRunning) return;
+            
+            const head = {x: snake[0].x, y: snake[0].y};
+            
+            switch(direction) {
+                case 'up': head.y--; break;
+                case 'down': head.y++; break;
+                case 'left': head.x--; break;
+                case 'right': head.x++; break;
+            }
+            
+            // 碰撞检测
+            if (head.x < 0 || head.x >= snakeCanvas.width/gridSize || 
+                head.y < 0 || head.y >= snakeCanvas.height/gridSize ||
+                snake.some(s => s.x === head.x && s.y === head.y)) {
+                endSnakeGame();
+                return;
+            }
+            
+            snake.unshift(head);
+            
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                document.getElementById('snakeScore').textContent = score;
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+            
+            drawSnake();
+        }
+        
+        function drawSnake() {
+            snakeCtx.fillStyle = '#0d0d1a';
+            snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+            
+            // 画网格
+            snakeCtx.strokeStyle = '#1a1a3a';
+            for (let i = 0; i < snakeCanvas.width; i += gridSize) {
+                snakeCtx.beginPath();
+                snakeCtx.moveTo(i, 0);
+                snakeCtx.lineTo(i, snakeCanvas.height);
+                snakeCtx.stroke();
+            }
+            for (let i = 0; i < snakeCanvas.height; i += gridSize) {
+                snakeCtx.beginPath();
+                snakeCtx.moveTo(0, i);
+                snakeCtx.lineTo(snakeCanvas.width, i);
+                snakeCtx.stroke();
+            }
+            
+            // 画食物
+            snakeCtx.fillStyle = '#ff6b6b';
+            snakeCtx.beginPath();
+            snakeCtx.arc(food.x * gridSize + gridSize/2, food.y * gridSize + gridSize/2, gridSize/2 - 2, 0, Math.PI * 2);
+            snakeCtx.fill();
+            
+            // 画蛇
+            snake.forEach((segment, index) => {
+                const gradient = snakeCtx.createRadialGradient(
+                    segment.x * gridSize + gridSize/2, segment.y * gridSize + gridSize/2, 0,
+                    segment.x * gridSize + gridSize/2, segment.y * gridSize + gridSize/2, gridSize/2
+                );
+                gradient.addColorStop(0, index === 0 ? '#4ecdc4' : '#26a69a');
+                gradient.addColorStop(1, index === 0 ? '#26a69a' : '#1e8e83');
+                
+                snakeCtx.fillStyle = gradient;
+                snakeCtx.beginPath();
+                snakeCtx.roundRect(segment.x * gridSize + 2, segment.y * gridSize + 2, gridSize - 4, gridSize - 4, 5);
+                snakeCtx.fill();
+                
+                if (index === 0) {
+                    // 蛇头眼睛
+                    snakeCtx.fillStyle = '#fff';
+                    let eye1x, eye1y, eye2x, eye2y;
+                    const cx = segment.x * gridSize + gridSize/2;
+                    const cy = segment.y * gridSize + gridSize/2;
+                    
+                    switch(direction) {
+                        case 'up': eye1x = cx - 4; eye1y = cy - 4; eye2x = cx + 4; eye2y = cy - 4; break;
+                        case 'down': eye1x = cx - 4; eye1y = cy + 4; eye2x = cx + 4; eye2y = cy + 4; break;
+                        case 'left': eye1x = cx - 4; eye1y = cy - 4; eye2x = cx - 4; eye2y = cy + 4; break;
+                        case 'right': eye1x = cx + 4; eye1y = cy - 4; eye2x = cx + 4; eye2y = cy + 4; break;
+                    }
+                    
+                    snakeCtx.beginPath();
+                    snakeCtx.arc(eye1x, eye1y, 2, 0, Math.PI * 2);
+                    snakeCtx.arc(eye2x, eye2y, 2, 0, Math.PI * 2);
+                    snakeCtx.fill();
+                }
+            });
+        }
+        
+        function endSnakeGame() {
+            snakeGameRunning = false;
+            clearInterval(snakeInterval);
+            document.getElementById('snakeFinalScore').textContent = score;
+            document.getElementById('snakeGameOver').style.display = 'block';
+        }
+        
+        function restartSnake() {
+            document.getElementById('snakeGameOver').style.display = 'none';
+            initSnake();
+        }
+        
+        // ============== 俄罗斯方块游戏 ==============
+        let tetrisCtx, tetrisCanvas;
+        let board, currentPiece, nextPiece, score, level, tetrisInterval;
+        let tetrisGameRunning = false;
+        
+        const pieces = [
+            { shape: [[1,1,1,1]], color: '#00f5ff' },      // I
+            { shape: [[1,1],[1,1]], color: '#ffff00' },   // O
+            { shape: [[0,1,0],[1,1,1]], color: '#aa00ff' }, // T
+            { shape: [[1,0,0],[1,1,1]], color: '#ff8c00' }, // L
+            { shape: [[0,0,1],[1,1,1]], color: '#0080ff' }, // J
+            { shape: [[0,1,1],[1,1,0]], color: '#00ff00' }, // S
+            { shape: [[1,1,0],[0,1,1]], color: '#ff0040' }  // Z
+        ];
+        
+        function initTetris() {
+            tetrisCanvas = document.getElementById('tetrisCanvas');
+            tetrisCtx = tetrisCanvas.getContext('2d');
+            
+            board = Array(20).fill(null).map(() => Array(10).fill(0));
+            score = 0;
+            level = 1;
+            tetrisGameRunning = true;
+            
+            document.getElementById('tetrisScore').textContent = '0';
+            document.getElementById('tetrisLevel').textContent = '1';
+            document.getElementById('tetrisGameOver').style.display = 'none';
+            
+            currentPiece = newPiece();
+            nextPiece = newPiece();
+            
+            if (tetrisInterval) clearInterval(tetrisInterval);
+            tetrisInterval = setInterval(updateTetris, 500 - (level - 1) * 50);
+            
+            document.onkeydown = tetrisKeyHandler;
+            drawTetris();
+        }
+        
+        function newPiece() {
+            const piece = pieces[Math.floor(Math.random() * pieces.length)];
+            return {
+                shape: piece.shape.map(row => [...row]),
+                color: piece.color,
+                x: Math.floor((10 - piece.shape[0].length) / 2),
+                y: 0
+            };
+        }
+        
+        function tetrisKeyHandler(e) {
+            if (!tetrisGameRunning) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    if (!collision(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) {
+                        currentPiece.x--;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (!collision(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) {
+                        currentPiece.x++;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (!collision(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+                        currentPiece.y++;
+                    }
+                    break;
+                case 'ArrowUp':
+                    const rotated = rotatePiece(currentPiece.shape);
+                    if (!collision(rotated, currentPiece.x, currentPiece.y)) {
+                        currentPiece.shape = rotated;
+                    }
+                    break;
+                case ' ':
+                    while (!collision(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+                        currentPiece.y++;
+                    }
+                    lockPiece();
+                    break;
+            }
+            drawTetris();
+        }
+        
+        function rotatePiece(shape) {
+            const rows = shape.length;
+            const cols = shape[0].length;
+            const rotated = [];
+            for (let i = 0; i < cols; i++) {
+                rotated.push([]);
+                for (let j = rows - 1; j >= 0; j--) {
+                    rotated[i].push(shape[j][i]);
+                }
+            }
+            return rotated;
+        }
+        
+        function collision(shape, offsetX, offsetY) {
+            for (let y = 0; y < shape.length; y++) {
+                for (let x = 0; x < shape[y].length; x++) {
+                    if (shape[y][x]) {
+                        const newX = x + offsetX;
+                        const newY = y + offsetY;
+                        if (newX < 0 || newX >= 10 || newY >= 20 || board[newY][newX]) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function updateTetris() {
+            if (!tetrisGameRunning) return;
+            
+            if (!collision(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+                currentPiece.y++;
+            } else {
+                lockPiece();
+            }
+            drawTetris();
+        }
+        
+        function lockPiece() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x]) {
+                        const boardY = y + currentPiece.y;
+                        const boardX = x + currentPiece.x;
+                        if (boardY >= 0) {
+                            board[boardY][boardX] = currentPiece.color;
+                        }
+                    }
+                }
+            }
+            
+            clearLines();
+            currentPiece = nextPiece;
+            nextPiece = newPiece();
+            
+            if (collision(currentPiece.shape, currentPiece.x, currentPiece.y)) {
+                endTetrisGame();
+            }
+        }
+        
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = 19; y >= 0; y--) {
+                if (board[y].every(cell => cell !== 0)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(10).fill(0));
+                    linesCleared++;
+                    y++;
+                }
+            }
+            
+            if (linesCleared > 0) {
+                const points = [0, 100, 300, 500, 800];
+                score += points[linesCleared] || 800;
+                level = Math.floor(score / 1000) + 1;
+                document.getElementById('tetrisScore').textContent = score;
+                document.getElementById('tetrisLevel').textContent = level;
+                
+                clearInterval(tetrisInterval);
+                tetrisInterval = setInterval(updateTetris, Math.max(100, 500 - (level - 1) * 50));
+            }
+        }
+        
+        function drawTetris() {
+            tetrisCtx.fillStyle = '#0d0d1a';
+            tetrisCtx.fillRect(0, 0, tetrisCanvas.width, tetrisCanvas.height);
+            
+            // 画网格
+            tetrisCtx.strokeStyle = '#1a1a3a';
+            for (let i = 0; i <= 10; i++) {
+                tetrisCtx.beginPath();
+                tetrisCtx.moveTo(i * 30, 0);
+                tetrisCtx.lineTo(i * 30, tetrisCanvas.height);
+                tetrisCtx.stroke();
+            }
+            for (let i = 0; i <= 20; i++) {
+                tetrisCtx.beginPath();
+                tetrisCtx.moveTo(0, i * 25);
+                tetrisCtx.lineTo(tetrisCanvas.width, i * 25);
+                tetrisCtx.stroke();
+            }
+            
+            // 画已固定的方块
+            for (let y = 0; y < 20; y++) {
+                for (let x = 0; x < 10; x++) {
+                    if (board[y][x]) {
+                        drawBlock(x * 30 + 1, y * 25 + 1, board[y][x], 28, 23);
+                    }
+                }
+            }
+            
+            // 画当前方块
+            if (currentPiece) {
+                for (let y = 0; y < currentPiece.shape.length; y++) {
+                    for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                        if (currentPiece.shape[y][x]) {
+                            const px = (currentPiece.x + x) * 30 + 1;
+                            const py = (currentPiece.y + y) * 25 + 1;
+                            if (py >= 0) {
+                                drawBlock(px, py, currentPiece.color, 28, 23);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function drawBlock(x, y, color, w, h) {
+            tetrisCtx.fillStyle = color;
+            tetrisCtx.fillRect(x, y, w, h);
+            
+            tetrisCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            tetrisCtx.fillRect(x, y, w, 3);
+            tetrisCtx.fillRect(x, y, 3, h);
+            
+            tetrisCtx.fillStyle = 'rgba(0,0,0,0.3)';
+            tetrisCtx.fillRect(x + w - 3, y, 3, h);
+            tetrisCtx.fillRect(x, y + h - 3, w, 3);
+        }
+        
+        function endTetrisGame() {
+            tetrisGameRunning = false;
+            clearInterval(tetrisInterval);
+            document.getElementById('tetrisFinalScore').textContent = score;
+            document.getElementById('tetrisGameOver').style.display = 'block';
+        }
+        
+        function restartTetris() {
+            document.getElementById('tetrisGameOver').style.display = 'none';
+            initTetris();
+        }
+        
+        // ============== 打地鼠游戏 ==============
+        let whackCtx, whackCanvas;
+        let whackScore, timeLeft, whackInterval, timerInterval;
+        let whackGameRunning = false;
+        let moles = [];
+        let lastHitMole = -1;
+        
+        function initWhack() {
+            whackCanvas = document.getElementById('whackCanvas');
+            whackCtx = whackCanvas.getContext('2d');
+            
+            whackScore = 0;
+            timeLeft = 30;
+            whackGameRunning = true;
+            moles = [];
+            lastHitMole = -1;
+            
+            document.getElementById('whackScore').textContent = '0';
+            document.getElementById('whackTime').textContent = '30';
+            document.getElementById('whackGameOver').style.display = 'none';
+            
+            // 创建地鼠洞
+            const cols = 5;
+            const rows = 3;
+            const holeWidth = whackCanvas.width / cols;
+            const holeHeight = whackCanvas.height / rows;
+            
+            for (let i = 0; i < 15; i++) {
+                moles.push({
+                    x: (i % cols) * holeWidth + holeWidth / 2,
+                    y: Math.floor(i / cols) * holeHeight + holeHeight / 2,
+                    active: false,
+                    showing: 0,
+                    hit: false
+                });
+            }
+            
+            whackCanvas.onclick = whackClick;
+            
+            if (whackInterval) clearInterval(whackInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            
+            whackInterval = setInterval(showMole, 800);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('whackTime').textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endWhackGame();
+                }
+            }, 1000);
+            
+            drawWhack();
+        }
+        
+        function showMole() {
+            if (!whackGameRunning) return;
+            
+            // 隐藏所有地鼠
+            moles.forEach(mole => {
+                mole.active = false;
+                mole.showing = 0;
+                mole.hit = false;
+            });
+            
+            // 随机显示1-3个地鼠
+            const count = Math.floor(Math.random() * 3) + 1;
+            const available = moles.map((m, i) => i).filter(i => i !== lastHitMole);
+            
+            for (let i = 0; i < Math.min(count, available.length); i++) {
+                const idx = available[Math.floor(Math.random() * available.length)];
+                moles[idx].active = true;
+                moles[idx].showing = 60; // 显示约0.5秒
+            }
+            
+            drawWhack();
+        }
+        
+        function whackClick(e) {
+            if (!whackGameRunning) return;
+            
+            const rect = whackCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            moles.forEach((mole, i) => {
+                if (mole.active && !mole.hit) {
+                    const dx = x - mole.x;
+                    const dy = y - mole.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 50) {
+                        mole.hit = true;
+                        mole.active = false;
+                        lastHitMole = i;
+                        whackScore += 10;
+                        document.getElementById('whackScore').textContent = whackScore;
+                    }
+                }
+            });
+            
+            drawWhack();
+        }
+        
+        function drawWhack() {
+            // 画草地背景
+            whackCtx.fillStyle = '#228B22';
+            whackCtx.fillRect(0, 0, whackCanvas.width, whackCanvas.height);
+            
+            // 画草地纹理
+            whackCtx.strokeStyle = '#1a6b1a';
+            for (let i = 0; i < whackCanvas.height; i += 10) {
+                whackCtx.beginPath();
+                whackCtx.moveTo(0, i);
+                whackCtx.lineTo(whackCanvas.width, i + 5);
+                whackCtx.stroke();
+            }
+            
+            moles.forEach((mole, i) => {
+                const holeRadius = 40;
+                
+                // 画洞
+                whackCtx.fillStyle = '#3d2817';
+                whackCtx.beginPath();
+                whackCtx.ellipse(mole.x, mole.y + 10, holeRadius, holeRadius * 0.5, 0, 0, Math.PI * 2);
+                whackCtx.fill();
+                
+                // 画地鼠
+                if (mole.active || mole.hit) {
+                    whackCtx.fillStyle = mole.hit ? '#ff6b6b' : '#8B7355';
+                    whackCtx.beginPath();
+                    whackCtx.ellipse(mole.x, mole.y - 20, 30, 25, 0, 0, Math.PI * 2);
+                    whackCtx.fill();
+                    
+                    // 脸
+                    whackCtx.fillStyle = mole.hit ? '#ffcccc' : '#C4A77D';
+                    whackCtx.beginPath();
+                    whackCtx.ellipse(mole.x, mole.y - 15, 20, 15, 0, 0, Math.PI * 2);
+                    whackCtx.fill();
+                    
+                    // 眼睛
+                    whackCtx.fillStyle = '#000';
+                    whackCtx.beginPath();
+                    whackCtx.arc(mole.x - 8, mole.y - 20, 4, 0, Math.PI * 2);
+                    whackCtx.arc(mole.x + 8, mole.y - 20, 4, 0, Math.PI * 2);
+                    whackCtx.fill();
+                    
+                    // 鼻子
+                    whackCtx.fillStyle = mole.hit ? '#ff4444' : '#FF69B4';
+                    whackCtx.beginPath();
+                    whackCtx.ellipse(mole.x, mole.y - 12, 5, 4, 0, 0, Math.PI * 2);
+                    whackCtx.fill();
+                    
+                    if (mole.hit) {
+                        // 锤子敲击效果
+                        whackCtx.strokeStyle = '#ff6b6b';
+                        whackCtx.lineWidth = 3;
+                        whackCtx.beginPath();
+                        whackCtx.moveTo(mole.x - 15, mole.y - 35);
+                        whackCtx.lineTo(mole.x + 15, mole.y - 5);
+                        whackCtx.moveTo(mole.x + 15, mole.y - 35);
+                        whackCtx.lineTo(mole.x - 15, mole.y - 5);
+                        whackCtx.stroke();
+                    }
+                }
+            });
+        }
+        
+        function endWhackGame() {
+            whackGameRunning = false;
+            clearInterval(whackInterval);
+            clearInterval(timerInterval);
+            document.getElementById('whackFinalScore').textContent = whackScore;
+            document.getElementById('whackGameOver').style.display = 'block';
+        }
+        
+        function restartWhack() {
+            document.getElementById('whackGameOver').style.display = 'none';
+            initWhack();
+        }
+    </script>
+</body>
+</html>
